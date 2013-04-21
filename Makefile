@@ -1,7 +1,7 @@
 all: scanner
 
 scanner: parser lexer
-	gcc -Wall -o scanner lex.yy.c parser.tab.c -lfl
+	clang -Wall -o scanner ast.c print.c lex.yy.c parser.tab.c -lfl
 
 lexer: lexer.l
 	flex lexer.l

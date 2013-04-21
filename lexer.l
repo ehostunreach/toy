@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "parser.tab.h"
 
 %}
@@ -44,11 +46,20 @@
 "while"  { return KW_WHILE;   }
 
  /* regular expression for identifier names */
-[_a-zA-Z][_a-zA-Z0-9]* { return IDENTIFIER;  }
+[_a-zA-Z][_a-zA-Z0-9]* {
+   yylval.identifier = strdup(yytext);
+   return IDENTIFIER;
+}
 
  /* regular expression for integer constants */
-[0-9]+            { return INT_CONSTANT;     }
-[0-9]+\.[0-9]+    { return FLOAT_CONSTANT;   }
+[0-9]+ {
+   yylval.int_const = atoi(yytext);
+   return INT_CONSTANT;
+}
+[0-9]+\.[0-9]+ {
+   yylval.float_const = (float) atof(yytext);
+   return FLOAT_CONSTANT;
+}
 
  /* ignore whitespace */
 [ \r\t]+ { }
