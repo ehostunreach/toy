@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ast.h"
 #include "vm_state.h"
@@ -71,9 +72,19 @@ vm_value_new_from_float_constant(float float_constant)
 
    vmval->type_specifier = TYPE_FLOAT;
    vmval->llvm_type = get_llvm_type(TYPE_FLOAT);
-   vmval->llvm_value = LLVMConstInt(vmval->llvm_type, float_constant, 0);
+   vmval->llvm_value = LLVMConstReal(vmval->llvm_type, float_constant);
 
    return vmval;
+}
+
+struct vm_value *
+vm_value_dup(struct vm_value *vmval)
+{
+   struct vm_value *ret;
+
+   ret = vm_value_new(vmval->type_specifier, vmval->identifier);
+   ret = memcpy(ret, vmval, sizeof(struct vm_value));
+   return ret;
 }
 
 LLVMValueRef
@@ -110,7 +121,7 @@ vm_value_build_math_op(struct vm_state *vm, int operation,
          opcode = (res->type_specifier == TYPE_INT) ? LLVMMul: LLVMFMul;
          break;
       case AST_DIV:
-         opcode = (res->type_specifier == TYPE_INT) ? LLVMMul: LLVMFMul;
+         opcode = (res->type_specifier == TYPE_INT) ? LLVMSDiv: LLVMFDiv;
          break;
       default:
          fprintf(stderr, "Unknown math operation: %d\n", operation);

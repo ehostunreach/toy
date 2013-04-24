@@ -17,6 +17,7 @@ struct vm_value {
 struct vm_value *vm_value_new(int type_specifier, const char *identifier);
 struct vm_value *vm_value_new_from_int_constant(int int_constant);
 struct vm_value *vm_value_new_from_float_constant(float float_constant);
+struct vm_value *vm_value_dup(struct vm_value *vmval);
 
 LLVMValueRef vm_value_alloca(struct vm_state *vm, struct vm_value *vmval);
 
