@@ -151,14 +151,71 @@ static void
 drive_selection_statement(struct vm_state *vm,
                           struct ast_selection_statement *selection_statement)
 {
-   return;
+   LLVMBasicBlockRef current_block,
+                     condition_block, then_block, else_block,
+                     merge_block;
+   LLVMValueRef function_value;
+   struct vm_value *cond_vmval;
+
+   current_block = LLVMGetInsertBlock(vm->builder);
+   function_value = LLVMGetBasicBlockParent(current_block);
+
+   condition_block = LLVMAppendBasicBlock(function_value, "if_condition");
+   then_block = LLVMAppendBasicBlock(function_value, "then_body");
+   if (selection_statement->else_body != NULL)
+      else_block = LLVMAppendBasicBlock(function_value, "else_body");
+   merge_block = LLVMAppendBasicBlock(function_value, "if_merge");
+
+   LLVMBuildBr(vm->builder, condition_block);
+   LLVMPositionBuilderAtEnd(vm->builder, condition_block);
+   cond_vmval = drive_expression(vm, selection_statement->condition);
+   if (selection_statement->else_body != NULL) {
+      LLVMBuildCondBr(vm->builder, cond_vmval->llvm_value,
+                                   then_block, else_block);
+   } else {
+      LLVMBuildCondBr(vm->builder, cond_vmval->llvm_value,
+                                   then_block, merge_block);
+   }
+
+   LLVMPositionBuilderAtEnd(vm->builder, then_block);
+   drive_compound_statement(vm, selection_statement->then_body);
+   LLVMBuildBr(vm->builder, merge_block);
+
+   if (selection_statement->else_body != NULL) {
+      LLVMPositionBuilderAtEnd(vm->builder, else_block);
+      drive_compound_statement(vm, selection_statement->else_body);
+      LLVMBuildBr(vm->builder, merge_block);
+   }
+
+   LLVMPositionBuilderAtEnd(vm->builder, merge_block);
 }
 
 static void
 drive_while_statement(struct vm_state *vm,
                       struct ast_while_statement *while_statement)
 {
-   return;
+   LLVMBasicBlockRef current_block, condition_block, body_block, merge_block;
+   LLVMValueRef function_value;
+   struct vm_value *cond_vmval;
+
+   current_block = LLVMGetInsertBlock(vm->builder);
+   function_value = LLVMGetBasicBlockParent(current_block);
+
+   condition_block = LLVMAppendBasicBlock(function_value, "while_condition");
+   body_block = LLVMAppendBasicBlock(function_value, "while_body");
+   merge_block = LLVMAppendBasicBlock(function_value, "while_merge");
+
+   LLVMBuildBr(vm->builder, condition_block);
+   LLVMPositionBuilderAtEnd(vm->builder, condition_block);
+   cond_vmval = drive_expression(vm, while_statement->condition);
+   LLVMBuildCondBr(vm->builder, cond_vmval->llvm_value,
+                                body_block, merge_block);
+
+   LLVMPositionBuilderAtEnd(vm->builder, body_block);
+   drive_compound_statement(vm, while_statement->body);
+   LLVMBuildBr(vm->builder, condition_block);
+
+   LLVMPositionBuilderAtEnd(vm->builder, merge_block);
 }
 
 static void

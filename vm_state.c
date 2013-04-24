@@ -12,8 +12,6 @@ vm_state_create(const char *module_name)
    LLVMValueRef function_value;
    LLVMBasicBlockRef entry_block;
 
-   char *error;
-
    vm = calloc(1, sizeof(struct vm_state));
    if (vm == NULL) {
       fprintf(stderr, "Memory allocation request failed.\n");
@@ -29,12 +27,6 @@ vm_state_create(const char *module_name)
    entry_block = LLVMAppendBasicBlock(function_value, "entry");
    LLVMPositionBuilderAtEnd(vm->builder, entry_block);
 
-   /*
-   error = NULL;
-   LLVMVerifyModule(vm->module, LLVMAbortProcessAction, &error);
-   LLVMDisposeMessage(error);
-   */
-
    vm->symtab = symbol_table_create();
    return vm;
 }
@@ -42,20 +34,25 @@ vm_state_create(const char *module_name)
 void
 vm_state_destroy(struct vm_state *vm)
 {
-   LLVMBasicBlockRef entry_block, return_block;
+   LLVMBasicBlockRef current_block, return_block;
+   char *error;
 
-   entry_block = LLVMGetInsertBlock(vm->builder);
-   return_block = LLVMInsertBasicBlock(entry_block, "ret");
+   current_block = LLVMGetInsertBlock(vm->builder);
+   return_block = LLVMInsertBasicBlock(current_block, "ret");
 
-   LLVMPositionBuilderAtEnd(vm->builder, entry_block);
+   LLVMPositionBuilderAtEnd(vm->builder, current_block);
    LLVMBuildBr(vm->builder, return_block);
 
    LLVMPositionBuilderAtEnd(vm->builder, return_block);
    LLVMBuildRetVoid(vm->builder);
 
-   LLVMMoveBasicBlockAfter(return_block, entry_block);
+   LLVMMoveBasicBlockAfter(return_block, current_block);
 
    LLVMDumpModule(vm->module);
+
+   error = NULL;
+   LLVMVerifyModule(vm->module, LLVMAbortProcessAction, &error);
+   LLVMDisposeMessage(error);
 
    LLVMDisposeBuilder(vm->builder);
    LLVMDisposeModule(vm->module);
